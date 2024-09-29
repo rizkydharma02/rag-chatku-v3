@@ -10,47 +10,45 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Initialize api_key in session state
-if 'api_key' not in st.session_state:
-    st.session_state.api_key = os.getenv("GROQ_API_KEY", "")
-
 # Function to load custom CSS
 def local_css(file_name):
     with open(file_name, 'r') as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 def initialize_session_state():
-    if 'documents' not in st.session_state:
-        st.session_state.documents = []
-    if 'embeddings' not in st.session_state:
-        st.session_state.embeddings = []
-    if 'chat_history' not in st.session_state:
-        st.session_state.chat_history = []
-    if 'conversation_history' not in st.session_state:
-        st.session_state.conversation_history = []
-    if 'index' not in st.session_state:
-        st.session_state.index = None
-    if 'processed_files' not in st.session_state:
-        st.session_state.processed_files = []
-    if 'processed_urls' not in st.session_state:
-        st.session_state.processed_urls = []
-    if 'clear_url' not in st.session_state:
-        st.session_state.clear_url = False
-    if 'selected_model' not in st.session_state:
-        st.session_state.selected_model = ""
-    if 'selected_embedding_model' not in st.session_state:
-        st.session_state.selected_embedding_model = ""
+    default_values = {
+        'documents': [],
+        'embeddings': [],
+        'chat_history': [],
+        'conversation_history': [],
+        'index': None,
+        'processed_files': [],
+        'processed_urls': [],
+        'clear_url': False,
+        'selected_model': "",
+        'selected_embedding_model': "",
+        'api_key': os.getenv("GROQ_API_KEY", ""),
+        'query_input': ""
+    }
+    
+    for key, default_value in default_values.items():
+        if key not in st.session_state:
+            st.session_state[key] = default_value
 
 def main():
-    st.set_page_config(page_title="Advanced RAG System", layout="wide")
-    local_css("style.css")
+    st.set_page_config(
+        page_title="Chatku AI",
+        page_icon="🤖",
+        layout="wide"
+    )
     initialize_session_state()
+    local_css("style.css")
 
     st.title("Retrieval Augmented Generation by Chatku AI")
 
     # Sidebar
     with st.sidebar:
-        st.title("Chatku AI")
+        st.title("Chatku AI 🤖")
         handle_sidebar()
 
     # Main area
@@ -72,8 +70,8 @@ def handle_sidebar():
     selected_embedding_model = st.selectbox("Pilih Embedding Model:", embedding_models, index=0)
     st.session_state.selected_embedding_model = selected_embedding_model
 
-    uploaded_file = st.file_uploader("Pilih file (PDF atau Word)", type=['pdf', 'docx'])
-    url = st.text_input("Atau masukkan URL", value="" if st.session_state.clear_url else st.session_state.get('url', ''))
+    uploaded_file = st.file_uploader("Pilih file (PDF or Word)", type=['pdf', 'docx'])
+    url = st.text_input("Atau Masukkan URL", value="" if st.session_state.clear_url else st.session_state.get('url', ''))
     st.session_state.clear_url = False
 
     if uploaded_file:
@@ -103,7 +101,7 @@ def handle_sidebar():
 
 def handle_main_area():
     st.subheader("Chatku AI")
-    query = st.text_input("Masukkan pertanyaan anda", key="query_input")
+    query = st.text_input("Masukkan Pertanyaan Anda", key="query_input")
 
     if query:
         handle_query(query)
@@ -143,16 +141,16 @@ def generate_embeddings(selected_embedding_model):
             embedding = generate_embedding(doc, model)
             st.session_state.embeddings.append(embedding)
             progress_bar.progress((i + 1) / len(st.session_state.documents))
-        st.success(f"Menghasilkan Embeddings untuk {len(st.session_state.embeddings)} dokumen!")
+        st.success(f"Menghasilkan Embeddings untuk {len(st.session_state.embeddings)} dokumen")
     else:
-        st.warning("Tidak ada dokumen untuk diproses. Silahkan unggah file atau masukkan URL terlebih dahulu!")
+        st.warning("Tidak ada dokumen untuk diproses. Silahkan masukkan file atau URL!")
 
 def create_search_index():
     if len(st.session_state.embeddings) > 0:
         st.session_state.index = create_index(st.session_state.embeddings)
-        st.success("Buat Pencarian index berhasil!")
+        st.success("Buat Search Index berhasil!")
     else:
-        st.warning("Harap buat Embeddings terlebih dahulu!")
+        st.warning("Silahkan hasilkan Embeddings terlebih dahulu!")
 
 def generate_document_summary(selected_model):
     if len(st.session_state.documents) > 0:
@@ -162,7 +160,7 @@ def generate_document_summary(selected_model):
         st.session_state.chat_history.append(("assistant", "Ringkasan Dokumen: " + summary))
         st.success("Ringkasan dokumen dibuat dan ditambahkan ke riwayat obrolan")
     else:
-        st.warning("Harap proses dokumen terlebih dahulu!")
+        st.warning("Silahkan proses dokumen terlebih dahulu!")
 
 def export_chat_history():
     if st.session_state.chat_history:
@@ -174,27 +172,32 @@ def export_chat_history():
             mime="text/plain"
         )
     else:
-        st.warning("Tidak ada riwayat obrolan untuk diekspor!")
+        st.warning("Tidak ada riwayat obrolan untuk diekspor")
 
 def clear_all_data():
-    for key in ['documents', 'embeddings', 'chat_history', 'conversation_history', 'processed_files', 'processed_urls']:
-        st.session_state[key] = []
-    st.session_state.index = None
-    st.session_state.clear_url = True
+    keys_to_clear = ['documents', 'embeddings', 'chat_history', 'conversation_history', 'processed_files', 'processed_urls', 'index']
     
-    # Reset the "Ask a Question" input
+    for key in keys_to_clear:
+        if key in st.session_state:
+            if isinstance(st.session_state[key], list):
+                st.session_state[key] = []
+            elif isinstance(st.session_state[key], dict):
+                st.session_state[key] = {}
+            else:
+                st.session_state[key] = None
+
+    st.session_state.clear_url = True
     if 'query_input' in st.session_state:
         st.session_state.query_input = ""
-    
-    st.success("Semua data sudah dihapus!")
+
+    st.success("Hapus semua data berhasil")
     st.experimental_rerun()
 
 def handle_query(query):
     if not st.session_state.api_key:
-        st.error("Silahkan masukkan Groq Api Key yang valid untuk mengakses Chatku AI")
+        st.error("Silahkan masukkan Groq API Key untuk mengakses fitur Chatku AI")
         return
 
-    # Add the new query to the conversation history
     st.session_state.conversation_history.append({"role": "user", "content": query})
 
     if st.session_state.index is not None:
@@ -207,17 +210,16 @@ def handle_query(query):
     else:
         prompt = query
 
-    # Include the conversation history in the prompt
     full_prompt = "Previous conversation:\n"
-    for message in st.session_state.conversation_history[:-1]:  # Exclude the latest query
+    for message in st.session_state.conversation_history[:-1]:
         full_prompt += f"{message['role'].capitalize()}: {message['content']}\n"
     full_prompt += f"\nNew question: {prompt}\n\nPlease provide a response that takes into account the previous conversation."
 
     with st.spinner("Generating response..."):
         response = query_llm(full_prompt, st.session_state.selected_model)
     
-    # Add the response to the conversation history
     st.session_state.conversation_history.append({"role": "assistant", "content": response})
+
     st.session_state.chat_history.append(("user", query))
     st.session_state.chat_history.append(("assistant", response))
 
@@ -228,7 +230,7 @@ def display_chat_history():
             st.markdown(
                 f"""
                 <div class="chat-message user">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1077/1077012.png" class="avatar">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1077/1077012.png" class="avatar" style="width: 50px; height: 50px;">
                     <div class="message"><b>User</b> <br>{message}</div>
                 </div>
                 """, 
@@ -238,7 +240,7 @@ def display_chat_history():
             st.markdown(
                 f"""
                 <div class="chat-message assistant">
-                    <img src="https://cdn-icons-png.flaticon.com/512/4712/4712027.png" class="avatar">
+                    <img src="https://cdn-icons-png.flaticon.com/512/4712/4712027.png" class="avatar" style="width: 50px; height: 50px;">
                     <div class="message"><b>Assistant</b> <br>{message}</div>
                 </div>
                 """, 
