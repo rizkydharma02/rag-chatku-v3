@@ -15,3 +15,6 @@ $ venv\Scripts\activate #opsional or source venv/bin/activate in Linux/Mac
 $ pip install -r requirements.txt
 
 $ streamlit run app.py
+
+note : tambahkan .env
+GROQ_API_KEY="key"
