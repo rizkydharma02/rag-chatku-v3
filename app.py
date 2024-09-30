@@ -33,6 +33,7 @@ def initialize_session_state():
         if key not in st.session_state:
             st.session_state[key] = default_value
 
+
 def clear_all_data():
     keys_to_clear = [
         'documents', 'embeddings', 'chat_history', 'conversation_history', 
@@ -50,7 +51,8 @@ def clear_all_data():
 
     st.session_state.clear_url = True
     st.session_state.query_input = ""
-    st.success("Semua data berhasil dihapus")
+    st.success("All data cleared successfully.")
+    st.rerun()
 
 def main():
     st.set_page_config(
@@ -115,7 +117,6 @@ def handle_sidebar():
 
     if st.button("Hapus Semua Data"):
         clear_all_data()
-        st.experimental_rerun()
 
 def handle_main_area():
     st.subheader("Chatku AI")
