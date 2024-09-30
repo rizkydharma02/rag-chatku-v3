@@ -176,7 +176,7 @@ def generate_document_summary(selected_model):
         summary_prompt = "Summarize the following documents:\n\n" + "\n\n".join(st.session_state.documents)
         with st.spinner("Membuat Ringkasan..."):
             summary = query_llm(summary_prompt, selected_model)
-        st.session_state.chat_history.append(("assistant", "Ringkasan Dokumen: " + summary))
+        st.session_state.chat_history.append(("assistant", "Ringkasan Dokumen<br> " + summary))
         st.success("Ringkasan dokumen dibuat dan ditambahkan ke riwayat obrolan")
     else:
         st.warning("Harap proses beberapa dokumen terlebih dahulu")
