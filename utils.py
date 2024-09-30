@@ -67,8 +67,8 @@ def query_llm(prompt, model_name):
         return f"An error occurred while querying the LLM: {str(e)}"
 
 def save_uploaded_file(uploaded_file):
-    os.makedirs('data', exist_ok=True)
     file_path = os.path.join('data', uploaded_file.name)
+    os.makedirs('data', exist_ok=True)
     with open(file_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
     return file_path

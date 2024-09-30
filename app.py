@@ -9,8 +9,6 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-
-# Function to load custom CSS
 def local_css(file_name):
     with open(file_name, 'r') as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
@@ -35,6 +33,25 @@ def initialize_session_state():
         if key not in st.session_state:
             st.session_state[key] = default_value
 
+def clear_all_data():
+    keys_to_clear = [
+        'documents', 'embeddings', 'chat_history', 'conversation_history', 
+        'processed_files', 'processed_urls', 'index', 'query_input'
+    ]
+    
+    for key in keys_to_clear:
+        if key in st.session_state:
+            if isinstance(st.session_state[key], list):
+                st.session_state[key] = []
+            elif isinstance(st.session_state[key], dict):
+                st.session_state[key] = {}
+            else:
+                st.session_state[key] = None
+
+    st.session_state.clear_url = True
+    st.session_state.query_input = ""
+    st.success("Semua data berhasil dihapus")
+
 def main():
     st.set_page_config(
         page_title="Chatku AI",
@@ -55,15 +72,15 @@ def main():
     handle_main_area()
 
 def handle_sidebar():
-    api_key = st.text_input("Masukkan Groq API Key:", value=st.session_state.api_key, type="password")
+    api_key = st.text_input("Masukkan Groq API Key (https://console.groq.com/)", value=st.session_state.api_key, type="password")
     if api_key:
         set_api_key(api_key)
         st.session_state.api_key = api_key
     else:
-        st.warning("Masukkan Groq API yang valid agar bisa menggunakan Chatku AI")
+        st.warning("Harap masukkan kunci API Groq yang valid untuk menggunakan fitur Chatku AI")
 
     available_models = get_available_models()
-    selected_model = st.selectbox("Pilih LLMs Model:", available_models, index=available_models.index(st.session_state.selected_model) if st.session_state.selected_model in available_models else 0)
+    selected_model = st.selectbox("Pilih LLM Model:", available_models, index=available_models.index(st.session_state.selected_model) if st.session_state.selected_model in available_models else 0)
     st.session_state.selected_model = selected_model
 
     embedding_models = ["all-MiniLM-L6-v2"]
@@ -71,7 +88,7 @@ def handle_sidebar():
     st.session_state.selected_embedding_model = selected_embedding_model
 
     uploaded_file = st.file_uploader("Pilih file (PDF or Word)", type=['pdf', 'docx'])
-    url = st.text_input("Atau Masukkan URL", value="" if st.session_state.clear_url else st.session_state.get('url', ''))
+    url = st.text_input("Atau masukkan URL", value="" if st.session_state.clear_url else st.session_state.get('url', ''))
     st.session_state.clear_url = False
 
     if uploaded_file:
@@ -98,10 +115,11 @@ def handle_sidebar():
 
     if st.button("Hapus Semua Data"):
         clear_all_data()
+        st.experimental_rerun()
 
 def handle_main_area():
     st.subheader("Chatku AI")
-    query = st.text_input("Masukkan Pertanyaan Anda", key="query_input")
+    query = st.text_input("Masukkan Pertanyaan Anda", key="query_input", value=st.session_state.query_input)
 
     if query:
         handle_query(query)
@@ -143,24 +161,24 @@ def generate_embeddings(selected_embedding_model):
             progress_bar.progress((i + 1) / len(st.session_state.documents))
         st.success(f"Menghasilkan Embeddings untuk {len(st.session_state.embeddings)} dokumen")
     else:
-        st.warning("Tidak ada dokumen untuk diproses. Silahkan masukkan file atau URL!")
+        st.warning("Tidak ada dokumen yang perlu diproses. Harap unggah berkas atau masukkan URL terlebih dahulu")
 
 def create_search_index():
     if len(st.session_state.embeddings) > 0:
         st.session_state.index = create_index(st.session_state.embeddings)
-        st.success("Buat Search Index berhasil!")
+        st.success("Indeks pencarian berhasil dibuat!")
     else:
-        st.warning("Silahkan hasilkan Embeddings terlebih dahulu!")
+        st.warning("Harap buat embedding terlebih dahulu")
 
 def generate_document_summary(selected_model):
     if len(st.session_state.documents) > 0:
         summary_prompt = "Summarize the following documents:\n\n" + "\n\n".join(st.session_state.documents)
-        with st.spinner("Menghasilkan Ringkasan..."):
+        with st.spinner("Membuat Ringkasan..."):
             summary = query_llm(summary_prompt, selected_model)
         st.session_state.chat_history.append(("assistant", "Ringkasan Dokumen: " + summary))
         st.success("Ringkasan dokumen dibuat dan ditambahkan ke riwayat obrolan")
     else:
-        st.warning("Silahkan proses dokumen terlebih dahulu!")
+        st.warning("Harap proses beberapa dokumen terlebih dahulu")
 
 def export_chat_history():
     if st.session_state.chat_history:
@@ -174,28 +192,9 @@ def export_chat_history():
     else:
         st.warning("Tidak ada riwayat obrolan untuk diekspor")
 
-def clear_all_data():
-    keys_to_clear = ['documents', 'embeddings', 'chat_history', 'conversation_history', 'processed_files', 'processed_urls', 'index']
-    
-    for key in keys_to_clear:
-        if key in st.session_state:
-            if isinstance(st.session_state[key], list):
-                st.session_state[key] = []
-            elif isinstance(st.session_state[key], dict):
-                st.session_state[key] = {}
-            else:
-                st.session_state[key] = None
-
-    st.session_state.clear_url = True
-    if 'query_input' in st.session_state:
-        st.session_state.query_input = ""
-
-    st.success("Hapus semua data berhasil")
-    st.experimental_rerun()
-
 def handle_query(query):
     if not st.session_state.api_key:
-        st.error("Silahkan masukkan Groq API Key untuk mengakses fitur Chatku AI")
+        st.error("Silakan masukkan kunci API Groq yang valid di bilah sisi untuk menggunakan fitur Chatku AI")
         return
 
     st.session_state.conversation_history.append({"role": "user", "content": query})
